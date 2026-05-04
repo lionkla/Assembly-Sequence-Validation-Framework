@@ -219,23 +219,12 @@ class MyCriterion(QualityCriterion):
 
 The criterion measures how efficiently the assembly exploits parallelism and avoids tool-resource conflicts. It combines two sub-scores:
 
-**Parallelism degree** \(d_\text{para}\) is derived from the dependency graph. The actual depth \(t_i\) of the prerequisite tree is compared against the theoretical bounds:
+**Parallelism degree** is derived from the dependency graph. The actual depth of the prerequisite tree is compared against the theoretical bounds.
 
-\[
-d_\text{para} = \frac{t_\text{max} - t_i}{t_\text{max} - t_\text{min}}, \quad t_\text{max} = n, \quad t_\text{min} = \lceil \log_2 n \rceil
-\]
-
-where \(n\) is the total number of steps. A fully sequential sequence reaches \(d_\text{para} = 0\); the most parallelisable structure reaches \(d_\text{para} = 1\).
+A fully sequential sequence reaches 0; the most parallelisable structure reaches 1.
 
 **Tool conflict ratio** counts pairs of steps that share at least one tool and have no prerequisite relationship (i.e., could be executed concurrently). The ratio of conflicting pairs to all potential parallel pairs is subtracted from a resource factor.
 
-The final score is:
-
-\[
-\text{TimeEfficiency} = \gamma \cdot d_\text{para} + (1 - \gamma)(1 - \text{tool\_conflict\_ratio})
-\]
-
-The parameter \(\gamma\) (default 0.5) controls the relative importance of parallelism versus resource availability.
 
 ---
 
@@ -257,14 +246,10 @@ The criterion collects five weighted indicators across two categories:
 
 | Indicator | Weight | Computation |
 |---|---|---|
-| `contact_type_quality` | 0.130 | Per-step connection score \(\min(1, \text{connection\_points}/5)\), smoothed by a symmetric fuzzy membership \((a + 2b + c)/4\). |
+| `contact_type_quality` | 0.130 | Per-step connection score, smoothed by a symmetric fuzzy membership . |
 | `structural_stability` | 0.248 | Weighted combination of three sub-factors: center-of-mass height (40 %), collision count penalty (35 %), and joint stress estimate (25 %), each smoothed by the same fuzzy membership. |
 
-After normalisation, each indicator is weighted and a TOPSIS score is computed. Because the positive ideal solution equals the observed best value (all benefit-type indicators), the positive ideal distance is zero, and the TOPSIS score collapses to:
-
-\[
-\text{Stability} = \frac{d^-}{d^- + d^+} = \frac{d^-}{d^-} = 1 \cdot \text{(relative distance from negative ideal)}
-\]
+After normalisation, each indicator is weighted and a TOPSIS score is computed. 
 
 The score reflects how far the sequence is from the worst possible configuration.
 
@@ -276,29 +261,14 @@ The score reflects how far the sequence is from the worst possible configuration
 
 The criterion combines three independent indices, each averaged over all steps:
 
-**Space accessibility index** \(g_\text{space}\) penalises collision events detected during each step:
+**Space accessibility index** penalises collision events detected during each step.
 
-\[
-g_\text{space} = 1 - \frac{k}{l + k}
-\]
 
-where \(k\) is the total number of collision events across all steps and \(l\) is the number of collision-free steps.
-
-**Clearance index** \(\mu_c\) applies a trapezoidal fuzzy membership function to the minimum measured clearance \(c\) (in mm) per step:
-
-\[
-\mu_c = \begin{cases} 0 & c \leq 0 \text{ or } c \geq 80 \\ \frac{c}{10} & 0 < c < 10 \\ 1 & 10 \leq c \leq 40 \\ \frac{80 - c}{40} & 40 < c < 80 \end{cases}
-\]
+**Clearance index** applies a trapezoidal fuzzy membership function to the minimum measured clearance per step
 
 The clearance is measured by `_compute_min_clearance` via PyBullet's `getClosestPoints` API at each simulation tick.
 
-**Tool access index** \(\mu_t\) is determined by `_check_tool_access_for_pose`, which fires ray-casts in five approach directions (+X, −X, +Y, −Y, +Z). If at least one direction is unobstructed, the step is considered accessible (\(\mu_t = 1.0\)); otherwise \(\mu_t = 0.2\). Unverified steps default to \(\mu_t = 0.5\).
-
-The final score is the arithmetic mean of all three indices:
-
-\[
-\text{Accessibility} = \frac{g_\text{space} + \bar{\mu}_c + \bar{\mu}_t}{3}
-\]
+**Tool access index** is determined by `_check_tool_access_for_pose`, which fires ray-casts in five approach directions (+X, −X, +Y, −Y, +Z). 
 
 ---
 
@@ -306,17 +276,7 @@ The final score is the arithmetic mean of all three indices:
 
 **Class:** `ComplexityCriterion` — based on Assembly Sequence Flexibility (ASF).
 
-The criterion measures the structural constraint density of the sequence. It builds the transitive closure of the prerequisite graph (Floyd–Warshall) to determine all pairs \((i, j)\) with a strict ordering relation. The **ordering share** \(OS\) is:
-
-\[
-OS = \frac{p_\text{pr}}{p_\text{all}}, \quad p_\text{all} = \frac{n(n-1)}{2}
-\]
-
-where \(p_\text{pr}\) counts step pairs with a definite precedence relation. A high \(OS\) means the sequence is heavily constrained (low flexibility); the score inverts this:
-
-\[
-\text{Complexity} = 1 - OS
-\]
+The criterion measures the structural constraint density of the sequence. It builds the transitive closure of the prerequisite graph (Floyd–Warshall) to determine all pairs i,j with a strict ordering relation. 
 
 A fully unconstrained sequence (no prerequisites) yields a score of 1.0; a fully linear chain yields a score approaching 0.0.
 
